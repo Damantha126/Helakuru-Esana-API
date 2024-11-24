@@ -13,6 +13,11 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        lfs: true
+        path: ./checkout
+      
 
     - name: Setup Python
       uses: actions/setup-python@v4
