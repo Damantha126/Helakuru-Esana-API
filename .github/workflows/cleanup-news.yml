@@ -2,79 +2,57 @@ name: Cleanup Old News Folders
 
 on:
   schedule:
-    # Run daily at midnight
     - cron: '0 0 * * *'
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install PyGitHub
+      run: |
+        python -m pip install --upgrade pip
+        pip install PyGitHub
+
     - name: Remove outdated folders via GitHub API
       env:
         GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
-        REPO: ${{ github.repository }}
       run: |
-        # Define the cutoff date (7 days ago)
-        CUTOFF_DATE=$(date -u -d "7 days ago" +%Y-%m-%dT%H:%M:%SZ)
+        python - <<EOF
+        import os
+        from datetime import datetime, timedelta, timezone
+        from github import Github
 
-        # Get the list of folders in the 'News' directory
-        FOLDERS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-          -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/repos/$REPO/contents/News" | jq -r '.[] | select(.type == "dir") | .path')
+        # Initialize GitHub client
+        token = os.getenv("GITHUB_TOKEN")
+        repo_name = "Damantha126/Helakuru-Esana-API"
+        g = Github(token)
+        repo = g.get_repo(repo_name)
 
-        for FOLDER in $FOLDERS; do
-          echo "Checking folder: $FOLDER"
+        # Define the cutoff time for outdated folders
+        cutoff_time = datetime.now(timezone.utc) - timedelta(days=7)  # Use timezone-aware datetime
 
-          # Get the list of files in the folder
-          FILES=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$REPO/contents/$(echo "$FOLDER" | jq -sRr @uri)" | jq -r '.[].path')
+        # List contents of the News directory
+        contents = repo.get_contents("News")
+        for content in contents:
+            if content.type == "dir":
+                # Get last commit date of the folder
+                commits = repo.get_commits(path=content.path)
+                if commits.totalCount > 0:
+                    last_modified = commits[0].commit.author.date  # This is already timezone-aware
 
-          LAST_COMMIT_DATE=""
-          for FILE in $FILES; do
-            COMMITS_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/$REPO/commits?path=$(echo "$FILE" | jq -sRr @uri)&per_page=1")
-
-            FILE_COMMIT_DATE=$(echo "$COMMITS_RESPONSE" | jq -r '.[0].commit.author.date' 2>/dev/null)
-
-            # Update the last commit date if it's newer
-            if [[ -n "$FILE_COMMIT_DATE" && ( -z "$LAST_COMMIT_DATE" || "$FILE_COMMIT_DATE" > "$LAST_COMMIT_DATE" ) ]]; then
-              LAST_COMMIT_DATE=$FILE_COMMIT_DATE
-            fi
-          done
-
-          if [[ -z "$LAST_COMMIT_DATE" ]]; then
-            echo "No commits found for folder: $FOLDER. Skipping..."
-            continue
-          fi
-
-          # Compare the last commit date with the cutoff date
-          if [[ "$LAST_COMMIT_DATE" < "$CUTOFF_DATE" ]]; then
-            echo "Folder $FOLDER is outdated (last modified: $LAST_COMMIT_DATE). Deleting..."
-
-            for FILE in $FILES; do
-              FILE_DETAILS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-                -H "Accept: application/vnd.github.v3+json" \
-                "https://api.github.com/repos/$REPO/contents/$(echo "$FILE" | jq -sRr @uri)")
-
-              if ! FILE_SHA=$(echo "$FILE_DETAILS" | jq -r '.sha' 2>/dev/null); then
-                echo "Error parsing file details for: $FILE"
-                echo "Response: $FILE_DETAILS"
-                continue
-              fi
-
-              curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
-                -H "Accept: application/vnd.github.v3+json" \
-                -d '{"message": "Delete outdated file", "sha": "'$FILE_SHA'"}' \
-                "https://api.github.com/repos/$REPO/contents/$(echo "$FILE" | jq -sRr @uri)"
-              echo "Deleted file: $FILE"
-            done
-
-            echo "Deleted folder: $FOLDER"
-          else
-            echo "Folder $FOLDER is up to date (last modified: $LAST_COMMIT_DATE)."
-          fi
-        done
+                    # Check if folder is outdated
+                    if last_modified < cutoff_time:
+                        print(f"Deleting outdated folder: {content.path}")
+                        # GitHub API requires a file to delete
+                        files = repo.get_contents(content.path)
+                        for file in files:
+                            repo.delete_file(file.path, f"Delete outdated file {file.path}", file.sha)
+                        print(f"Deleted folder: {content.path}")
+        EOF
