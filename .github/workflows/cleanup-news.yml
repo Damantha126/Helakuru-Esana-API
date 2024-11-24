@@ -11,6 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install PyGitHub
+      run: |
+        python -m pip install --upgrade pip
+        pip install PyGitHub    
     - name: Remove outdated folders via GitHub API
       env:
         GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
