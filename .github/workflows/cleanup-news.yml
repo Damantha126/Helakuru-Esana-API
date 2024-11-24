@@ -20,6 +20,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
       run: |
+        git config --global core.longpaths true
         git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} repo
         cd repo
         git checkout main
