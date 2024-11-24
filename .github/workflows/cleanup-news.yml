@@ -1,0 +1,58 @@
+name: Cleanup Old News Folders
+
+on:
+  schedule:
+    # Run the action daily at midnight
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual triggering of the workflow
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install PyGitHub
+
+    - name: Remove outdated folders
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python - <<EOF
+        import os
+        import time
+        from datetime import datetime, timedelta
+        from github import Github
+
+        # Configure repository
+        repo_name = "Damantha126/Helakuru-Esana-API"
+        token = os.environ['GITHUB_TOKEN']
+        g = Github(token)
+        repo = g.get_repo(repo_name)
+
+        # Define cutoff time
+        cutoff_time = datetime.now() - timedelta(days=7)
+
+        # List contents of News directory
+        contents = repo.get_contents("News")
+        for content in contents:
+            if content.type == "dir":
+                # Get last modified time
+                commit = repo.get_commits(path=content.path)[0]
+                last_modified = commit.commit.author.date
+
+                # Check if folder is outdated
+                if last_modified < cutoff_time:
+                    print(f"Deleting outdated folder: {content.path}")
+                    repo.delete_file(content.path + "/.keep", "Remove outdated folder", commit.sha)
+        EOF
