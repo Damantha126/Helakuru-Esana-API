@@ -11,13 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Rename files with long paths
+      run: |
+        find News/ -type f -name "*.md" | while read filepath; do
+          newpath=$(echo $filepath | cut -c 1-150)
+          mv "$filepath" "$newpath"
+        done
+    
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 1
-        lfs: true
-        path: ./checkout
-      
 
     - name: Setup Python
       uses: actions/setup-python@v4
