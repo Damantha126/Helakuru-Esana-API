@@ -11,50 +11,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Set up Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-    - name: Clone repository
+    - name: Remove outdated folders via GitHub API
       env:
         GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+        REPO: ${{ github.repository }}
       run: |
-        git config --global core.longpaths true
-        git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} repo
-        cd repo
-        git checkout main
+        #!/bin/bash
 
-    - name: Run cleanup script
-      working-directory: repo
-      run: |
-        python - <<EOF
-        import os
-        import shutil
-        from datetime import datetime, timedelta
+        # Define the cutoff date (7 days ago)
+        CUTOFF_DATE=$(date -u -d "7 days ago" +%Y-%m-%dT%H:%M:%SZ)
 
-        # Define the directory and cutoff time
-        news_dir = "News"
-        cutoff_time = datetime.now() - timedelta(days=7)
+        # Get the list of folders in the 'News' directory
+        FOLDERS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/$REPO/contents/News" | jq -r '.[] | select(.type == "dir") | .path')
 
-        # Iterate through subdirectories
-        for folder in os.listdir(news_dir):
-            folder_path = os.path.join(news_dir, folder)
-            if os.path.isdir(folder_path):
-                # Get folder's last modified time
-                last_modified_time = datetime.fromtimestamp(os.path.getmtime(folder_path))
+        for FOLDER in $FOLDERS; do
+          echo "Checking folder: $FOLDER"
 
-                # Delete the folder if it's older than the cutoff time
-                if last_modified_time < cutoff_time:
-                    print(f"Deleting outdated folder: {folder_path}")
-                    shutil.rmtree(folder_path)
-        EOF
+          # Get the latest commit for the folder
+          LAST_COMMIT_DATE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$REPO/commits?path=$FOLDER&per_page=1" | jq -r '.[0].commit.author.date')
 
-    - name: Commit and push changes
-      working-directory: repo
-      env:
-        GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
-      run: |
-        git add .
-        git commit -m "Cleanup: Remove outdated News folders"
-        git push
+          # Compare the last commit date with the cutoff date
+          if [[ "$LAST_COMMIT_DATE" < "$CUTOFF_DATE" ]]; then
+            echo "Folder $FOLDER is outdated (last modified: $LAST_COMMIT_DATE). Deleting..."
+
+            # Delete all files in the folder
+            FILES=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/$REPO/contents/$FOLDER" | jq -r '.[].path')
+
+            for FILE in $FILES; do
+              FILE_SHA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/$REPO/contents/$FILE" | jq -r '.sha')
+
+              curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                -d '{"message": "Delete outdated file", "sha": "'$FILE_SHA'"}' \
+                "https://api.github.com/repos/$REPO/contents/$FILE"
+              echo "Deleted file: $FILE"
+            done
+
+            echo "Deleted folder: $FOLDER"
+          else
+            echo "Folder $FOLDER is up to date (last modified: $LAST_COMMIT_DATE)."
+          fi
+        done
