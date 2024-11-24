@@ -26,7 +26,7 @@ jobs:
 
     - name: Remove outdated folders
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
       run: |
         python - <<EOF
         import os
@@ -36,7 +36,7 @@ jobs:
 
         # Configure repository
         repo_name = "Damantha126/Helakuru-Esana-API"
-        token = os.environ['GITHUB_TOKEN']
+        token = os.environ['GIT_TOKEN']
         g = Github(token)
         repo = g.get_repo(repo_name)
 
