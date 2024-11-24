@@ -2,57 +2,58 @@ name: Cleanup Old News Folders
 
 on:
   schedule:
+    # Run daily at midnight
     - cron: '0 0 * * *'
-  workflow_dispatch:
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
-
-    - name: Install PyGitHub
+    - name: Set up Git
       run: |
-        python -m pip install --upgrade pip
-        pip install PyGitHub
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-    - name: Remove outdated folders via GitHub API
+    - name: Clone repository
       env:
         GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
       run: |
+        git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} repo
+        cd repo
+        git checkout main
+
+    - name: Run cleanup script
+      working-directory: repo
+      run: |
         python - <<EOF
         import os
-        from datetime import datetime, timedelta, timezone
-        from github import Github
+        import shutil
+        from datetime import datetime, timedelta
 
-        # Initialize GitHub client
-        token = os.getenv("GITHUB_TOKEN")
-        repo_name = "Damantha126/Helakuru-Esana-API"
-        g = Github(token)
-        repo = g.get_repo(repo_name)
+        # Define the directory and cutoff time
+        news_dir = "News"
+        cutoff_time = datetime.now() - timedelta(days=7)
 
-        # Define the cutoff time for outdated folders
-        cutoff_time = datetime.now(timezone.utc) - timedelta(days=7)  # Use timezone-aware datetime
+        # Iterate through subdirectories
+        for folder in os.listdir(news_dir):
+            folder_path = os.path.join(news_dir, folder)
+            if os.path.isdir(folder_path):
+                # Get folder's last modified time
+                last_modified_time = datetime.fromtimestamp(os.path.getmtime(folder_path))
 
-        # List contents of the News directory
-        contents = repo.get_contents("News")
-        for content in contents:
-            if content.type == "dir":
-                # Get last commit date of the folder
-                commits = repo.get_commits(path=content.path)
-                if commits.totalCount > 0:
-                    last_modified = commits[0].commit.author.date  # This is already timezone-aware
-
-                    # Check if folder is outdated
-                    if last_modified < cutoff_time:
-                        print(f"Deleting outdated folder: {content.path}")
-                        # GitHub API requires a file to delete
-                        files = repo.get_contents(content.path)
-                        for file in files:
-                            repo.delete_file(file.path, f"Delete outdated file {file.path}", file.sha)
-                        print(f"Deleted folder: {content.path}")
+                # Delete the folder if it's older than the cutoff time
+                if last_modified_time < cutoff_time:
+                    print(f"Deleting outdated folder: {folder_path}")
+                    shutil.rmtree(folder_path)
         EOF
+
+    - name: Commit and push changes
+      working-directory: repo
+      env:
+        GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+      run: |
+        git add .
+        git commit -m "Cleanup: Remove outdated News folders"
+        git push
