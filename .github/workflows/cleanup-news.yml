@@ -30,7 +30,7 @@ jobs:
           # Get the latest commit for the folder
           COMMITS_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$REPO/commits?path=$FOLDER&per_page=1")
+            "https://api.github.com/repos/$REPO/commits?path=$(echo "$FOLDER" | jq -sRr @uri)&per_page=1")
 
           if ! LAST_COMMIT_DATE=$(echo "$COMMITS_RESPONSE" | jq -r '.[0].commit.author.date' 2>/dev/null); then
             echo "Error parsing commits response for folder: $FOLDER"
@@ -47,15 +47,15 @@ jobs:
           if [[ "$LAST_COMMIT_DATE" < "$CUTOFF_DATE" ]]; then
             echo "Folder $FOLDER is outdated (last modified: $LAST_COMMIT_DATE). Deleting..."
 
-            # Delete all files in the folder
+            # Get the list of files in the folder
             FILES=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/$REPO/contents/$FOLDER" | jq -r '.[].path')
+              "https://api.github.com/repos/$REPO/contents/$(echo "$FOLDER" | jq -sRr @uri)" | jq -r '.[].path')
 
             for FILE in $FILES; do
               FILE_DETAILS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
                 -H "Accept: application/vnd.github.v3+json" \
-                "https://api.github.com/repos/$REPO/contents/$FILE")
+                "https://api.github.com/repos/$REPO/contents/$(echo "$FILE" | jq -sRr @uri)")
 
               if ! FILE_SHA=$(echo "$FILE_DETAILS" | jq -r '.sha' 2>/dev/null); then
                 echo "Error parsing file details for: $FILE"
@@ -66,7 +66,7 @@ jobs:
               curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
                 -H "Accept: application/vnd.github.v3+json" \
                 -d '{"message": "Delete outdated file", "sha": "'$FILE_SHA'"}' \
-                "https://api.github.com/repos/$REPO/contents/$FILE"
+                "https://api.github.com/repos/$REPO/contents/$(echo "$FILE" | jq -sRr @uri)"
               echo "Deleted file: $FILE"
             done
 
