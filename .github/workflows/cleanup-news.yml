@@ -54,5 +54,6 @@ jobs:
                         files = repo.get_contents(content.path)
                         for file in files:
                             repo.delete_file(file.path, f"Delete outdated file {file.path}", file.sha)
+                            print(f"Delete outdated file {file.path}")
                         print(f"Deleted folder: {content.path}")
         EOF
