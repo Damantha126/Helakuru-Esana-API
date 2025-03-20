@@ -1,7 +1,7 @@
 <p align='center'><b><h1 align='center'>Helakuru-Esana-API(Unofficial)🇱🇰</h1></b></p>
 <p align="center">
   <a href="https://t.me/HelakuruNewsLK">
-        <img src="https://envs.sh/zLJ.jpg" alt="sdbots" width="440">
+        <img src="https://cdn.taprobyte.com/file/9659b5e014f6f41c02b98.jpg" alt="sdbots" width="440">
     </a>
     <br>
     <b>Nation's News Breaker🇱🇰</b>
