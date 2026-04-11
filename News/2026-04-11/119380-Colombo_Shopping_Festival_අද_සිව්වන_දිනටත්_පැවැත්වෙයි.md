@@ -1,0 +1,16 @@
+<p align='center'><b><h2 align='center' title='Colombo Shopping Festival continues for the fourth day today'>🏷Colombo Shopping Festival අද සිව්වන දිනටත් පැවැත්වෙයි</h2></b></p>
+<p align='center'><img src='https://helakuru.sgp1.cdn.digitaloceanspaces.com/esana/images/lib/gfbfbf-vv.jpg' width='600' alt='Colombo Shopping Festival continues for the fourth day today'></p>
+
+> සිංහල සහ දෙමළ අලුත් අවුරුදු සමය වෙනුවෙන් 41 වැනි වරටත් සංවිධානය කරනු ලබන වසරේ දැවැන්තම වෙළඳ ප්‍රදර්ශනය ‘Colombo Shopping Festival’ ‍අද (11) සිව්වන දිනටත් පැවැත්වෙනවා.
+
+> මෙම වෙළඳ ප්‍රදර්ශනය සහ සැණකෙළිය හෙට (12) දක්වා කොළඹ බණ්ඩාරනායක අනුස්මරණ ජාත්‍යන්තර සම්මන්ත්‍රණ ශාලා (BMICH) භූමියේදී පැවැත්වීමට නියමිතයි.
+
+> මෙහිදී නිමි ඇඳුම්, පාවහන්, විසිතුරු භාණ්ඩ සහ ඉලෙක්ට්‍රොනික උපාංග ඇතුළු භාණ්ඩ රැසක් සුවිශේෂී වට්ටම් යටතේ මිලදී ගැනීමට පාරිභෝගිකයන්ට අවස්ථාව හිමිවී තිබෙනවා.
+
+> 'Colombo Shopping Festival' වෙත පැමිණීමට සහ නැවත නිවසට යෑමට ඔබ Helago භාවිතා කර, කාඩ්පත් මඟින් ගෙවීමක් සිදු කළහොත්, එළඹෙන 12 වැනිදා දක්වා ඔබට 50% ක වට්ටමක් ලබාගැනීමේ හැකියාව පවතිනවා.
+
+>  
+
+
+
+<h3 align='right'><a href='https://www.helakuru.lk/esana/p/119380/'>📅 2026-04-11 09:05:00</a></h3>
